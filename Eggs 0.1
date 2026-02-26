@@ -1,0 +1,75 @@
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+local Window = Rayfield:CreateWindow({
+   Name = "LUACRAFTED V65 | HYPER HATCH",
+   LoadingTitle = "OVERCLOCKING...",
+   LoadingSubtitle = "Auto-Detecting Gamepasses",
+   ConfigurationSaving = { Enabled = false }
+})
+
+local Tab = Window:CreateTab("🌍 Hyper Earth", 4483362458)
+local Knit = require(game:GetService("ReplicatedStorage").Packages.Knit)
+local Player = game:GetService("Players").LocalPlayer
+
+-- 1. EXTRACT EXACT STRING
+local targetEggModel = workspace.Zones["1"].Interactables.Eggs:FindFirstChild("Earth Egg")
+local exactEggString = "Unknown"
+
+if targetEggModel then
+    local prompt = targetEggModel:FindFirstChildWhichIsA("ProximityPrompt", true)
+    if prompt then
+        exactEggString = prompt:GetAttribute("Egg")
+    end
+end
+
+Tab:CreateLabel("Target Locked: " .. tostring(exactEggString))
+
+-- 2. HIJACK CONTROLLERS
+local EggController = Knit.GetController("EggController")
+local EggAnimController = Knit.GetController("EggAnimationController")
+
+-- Absolute silence to prevent UI lag
+EggAnimController.Hatch = function() end
+EggController.opening = function(self)
+    self.EggIsOpening = false
+    self.CanOpen = true
+end
+
+-- 3. HYPER AUTO-HATCH
+Tab:CreateToggle({
+   Name = "HYPER Hatch (Max Speed & Multi)",
+   CurrentValue = false,
+   Callback = function(Value)
+       _G.HyperHatch = Value
+       
+       if exactEggString == "Unknown" then
+           warn("❌ [ERROR] Egg ID is Unknown.")
+           return
+       end
+       
+       task.spawn(function()
+           while _G.HyperHatch do
+               -- 1. READ YOUR GAMEPASSES LIVE
+               local hasTriple = Player:GetAttribute("TripleEggs") or false
+               local hasOcto = Player:GetAttribute("OctoEggs") or false
+               local specialHatches = Player:GetAttribute("HatchesPurchased") or 0
+               local useSpecial = specialHatches > 0
+               
+               -- 2. FORCE CONTROLLER STATE
+               EggController.CurrentEgg = exactEggString
+               EggController.CanOpen = true
+               EggController.EggIsOpening = false
+               
+               -- 3. FIRE WITH MAX MULTIPLIERS
+               -- Arguments: openEgg(Triple, EggName, Octo, IgnoreCooldown, SpecialHatch)
+               pcall(function()
+                   EggController:openEgg(hasTriple, exactEggString, hasOcto, true, useSpecial)
+               end)
+               
+               -- ZERO DELAY. This runs as fast as the server can process your requests.
+               task.wait() 
+           end
+       end)
+   end,
+})
+
+Tab:CreateLabel("Warning: May cause slight lag due to speed")
