@@ -1,75 +1,91 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 local Window = Rayfield:CreateWindow({
-   Name = "LUACRAFTED V65 | HYPER HATCH",
-   LoadingTitle = "OVERCLOCKING...",
-   LoadingSubtitle = "Auto-Detecting Gamepasses",
+   Name = "LUACRAFTED V69 | UNIVERSAL HYPER HATCH",
+   LoadingTitle = "SCANNING WORLD & GAMEPASSES...",
+   LoadingSubtitle = "Building Dynamic Egg List",
    ConfigurationSaving = { Enabled = false }
 })
 
-local Tab = Window:CreateTab("🌍 Hyper Earth", 4483362458)
+local Tab = Window:CreateTab("🥚 Universal Hatch", 4483362458)
 local Knit = require(game:GetService("ReplicatedStorage").Packages.Knit)
 local Player = game:GetService("Players").LocalPlayer
 
--- 1. EXTRACT EXACT STRING
-local targetEggModel = workspace.Zones["1"].Interactables.Eggs:FindFirstChild("Earth Egg")
-local exactEggString = "Unknown"
+-- [[ 1. DYNAMIC EGG SCANNER ]]
+local eggDictionary = {} 
+local eggDropdownList = {}
 
-if targetEggModel then
-    local prompt = targetEggModel:FindFirstChildWhichIsA("ProximityPrompt", true)
-    if prompt then
-        exactEggString = prompt:GetAttribute("Egg")
+-- Scans all zones for physical egg models and their hidden IDs
+for _, zone in pairs(workspace.Zones:GetChildren()) do
+    local interactables = zone:FindFirstChild("Interactables")
+    if interactables then
+        local eggs = interactables:FindFirstChild("Eggs")
+        if eggs then
+            for _, eggModel in pairs(eggs:GetChildren()) do
+                local prompt = eggModel:FindFirstChildWhichIsA("ProximityPrompt", true)
+                if prompt then
+                    local internalID = prompt:GetAttribute("Egg")
+                    if internalID then
+                        eggDictionary[eggModel.Name] = internalID
+                        table.insert(eggDropdownList, eggModel.Name)
+                    end
+                end
+            end
+        end
     end
 end
 
-Tab:CreateLabel("Target Locked: " .. tostring(exactEggString))
+table.sort(eggDropdownList)
+local selectedEggID = "Unknown"
 
--- 2. HIJACK CONTROLLERS
+Tab:CreateDropdown({
+   Name = "Select Egg to Hatch",
+   Options = eggDropdownList,
+   CurrentOption = eggDropdownList[1] or "No Eggs Found",
+   Callback = function(Option)
+       local name = type(Option) == "table" and Option[1] or Option
+       selectedEggID = eggDictionary[name] or "Unknown"
+   end,
+})
+
+-- [[ 2. GAMEPASS DETECTOR & CONTROLLER HIJACK ]]
 local EggController = Knit.GetController("EggController")
 local EggAnimController = Knit.GetController("EggAnimationController")
 
--- Absolute silence to prevent UI lag
+-- Silence the UI and Animations
 EggAnimController.Hatch = function() end
 EggController.opening = function(self)
     self.EggIsOpening = false
     self.CanOpen = true
 end
 
--- 3. HYPER AUTO-HATCH
+-- [[ 3. AUTO-HATCH LOOP ]]
 Tab:CreateToggle({
-   Name = "HYPER Hatch (Max Speed & Multi)",
+   Name = "Start Hyper Hatch (Auto-Detects Pass)",
    CurrentValue = false,
    Callback = function(Value)
-       _G.HyperHatch = Value
-       
-       if exactEggString == "Unknown" then
-           warn("❌ [ERROR] Egg ID is Unknown.")
-           return
-       end
+       _G.HyperHatchUniversal = Value
        
        task.spawn(function()
-           while _G.HyperHatch do
-               -- 1. READ YOUR GAMEPASSES LIVE
-               local hasTriple = Player:GetAttribute("TripleEggs") or false
-               local hasOcto = Player:GetAttribute("OctoEggs") or false
-               local specialHatches = Player:GetAttribute("HatchesPurchased") or 0
-               local useSpecial = specialHatches > 0
-               
-               -- 2. FORCE CONTROLLER STATE
-               EggController.CurrentEgg = exactEggString
-               EggController.CanOpen = true
-               EggController.EggIsOpening = false
-               
-               -- 3. FIRE WITH MAX MULTIPLIERS
-               -- Arguments: openEgg(Triple, EggName, Octo, IgnoreCooldown, SpecialHatch)
-               pcall(function()
-                   EggController:openEgg(hasTriple, exactEggString, hasOcto, true, useSpecial)
-               end)
-               
-               -- ZERO DELAY. This runs as fast as the server can process your requests.
-               task.wait() 
+           while _G.HyperHatchUniversal do
+               if selectedEggID ~= "Unknown" then
+                   -- DETECTION: Reads your account attributes for gamepasses
+                   local hasTriple = Player:GetAttribute("TripleEggs") or false
+                   local hasOcto = Player:GetAttribute("OctoEggs") or false
+                   local specialHatches = Player:GetAttribute("HatchesPurchased") or 0
+                   local useSpecial = specialHatches > 0
+
+                   -- Force Controller State
+                   EggController.CurrentEgg = selectedEggID
+                   EggController.CanOpen = true
+                   EggController.EggIsOpening = false
+                   
+                   -- Fire Native Code (The 'true' ignores the 1s cooldown)
+                   pcall(function()
+                       EggController:openEgg(hasTriple, selectedEggID, hasOcto, true, useSpecial)
+                   end)
+               end
+               task.wait() -- Maximum processing speed
            end
        end)
    end,
 })
-
-Tab:CreateLabel("Warning: May cause slight lag due to speed")
