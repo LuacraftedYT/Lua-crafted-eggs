@@ -1,91 +1,108 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 local Window = Rayfield:CreateWindow({
-   Name = "LUACRAFTED V69 | UNIVERSAL HYPER HATCH",
-   LoadingTitle = "SCANNING WORLD & GAMEPASSES...",
-   LoadingSubtitle = "Building Dynamic Egg List",
+   Name = "LUACRAFTED V71 | ZORP SNIPER",
+   LoadingTitle = "TARGETING ALIEN EGG...",
+   LoadingSubtitle = "World 23 Overdrive",
    ConfigurationSaving = { Enabled = false }
 })
 
-local Tab = Window:CreateTab("🥚 Universal Hatch", 4483362458)
+local Tab = Window:CreateTab("🥚 World 23 Hatch", 4483362458)
 local Knit = require(game:GetService("ReplicatedStorage").Packages.Knit)
 local Player = game:GetService("Players").LocalPlayer
 
--- [[ 1. DYNAMIC EGG SCANNER ]]
-local eggDictionary = {} 
-local eggDropdownList = {}
+-- [[ 1. THE ALIEN EGG SNIPER ]]
+local selectedInternal = "Unknown"
+local function ForceAlienEgg()
+    -- Targeted Path based on your input
+    local target = workspace.Zones["23"].Interactables.Eggs.CrushcoreEgg.Egg.AlienEgg
+    if target then
+        -- We search specifically for the ID hidden in this model
+        local prompt = target:FindFirstChildWhichIsA("ProximityPrompt", true)
+        if prompt then
+            selectedInternal = prompt:GetAttribute("Egg")
+            print("✅ [ZORP] Target Locked: Alien Egg (" .. tostring(selectedInternal) .. ")")
+            Rayfield:Notify({Title = "Zorp Sniper", Content = "Alien Egg Locked!", Duration = 3})
+        else
+            warn("❌ Prompt not found in AlienEgg. Checking attributes on model...")
+            selectedInternal = target:GetAttribute("Egg") or "Unknown"
+        end
+    end
+end
 
--- Scans all zones for physical egg models and their hidden IDs
-for _, zone in pairs(workspace.Zones:GetChildren()) do
-    local interactables = zone:FindFirstChild("Interactables")
-    if interactables then
-        local eggs = interactables:FindFirstChild("Eggs")
-        if eggs then
-            for _, eggModel in pairs(eggs:GetChildren()) do
-                local prompt = eggModel:FindFirstChildWhichIsA("ProximityPrompt", true)
-                if prompt then
-                    local internalID = prompt:GetAttribute("Egg")
-                    if internalID then
-                        eggDictionary[eggModel.Name] = internalID
-                        table.insert(eggDropdownList, eggModel.Name)
-                    end
+-- Run it immediately on load
+pcall(ForceAlienEgg)
+
+-- [[ 2. UNIVERSAL SCANNER (RECURSIVE) ]]
+local eggDict = {} 
+local eggOptions = {}
+local function DeepScan()
+    table.clear(eggDict)
+    table.clear(eggOptions)
+    for _, obj in pairs(workspace:GetDescendants()) do
+        if obj:IsA("ProximityPrompt") then
+            local id = obj:GetAttribute("Egg")
+            if id then
+                local name = obj.Parent.Name
+                if name == "Attachment" or name == "Hitbox" then name = obj.Parent.Parent.Name end
+                if not eggDict[name] then
+                    eggDict[name] = id
+                    table.insert(eggOptions, name)
                 end
             end
         end
     end
 end
 
-table.sort(eggDropdownList)
-local selectedEggID = "Unknown"
+DeepScan()
+table.sort(eggOptions)
 
 Tab:CreateDropdown({
-   Name = "Select Egg to Hatch",
-   Options = eggDropdownList,
-   CurrentOption = eggDropdownList[1] or "No Eggs Found",
+   Name = "Select Other Egg",
+   Options = eggOptions,
+   CurrentOption = "AlienEgg",
    Callback = function(Option)
        local name = type(Option) == "table" and Option[1] or Option
-       selectedEggID = eggDictionary[name] or "Unknown"
+       selectedInternal = eggDict[name] or selectedInternal
    end,
 })
 
--- [[ 2. GAMEPASS DETECTOR & CONTROLLER HIJACK ]]
+-- [[ 3. HIJACK & HATCH ]]
 local EggController = Knit.GetController("EggController")
-local EggAnimController = Knit.GetController("EggAnimationController")
+local EggAnim = Knit.GetController("EggAnimationController")
 
--- Silence the UI and Animations
-EggAnimController.Hatch = function() end
-EggController.opening = function(self)
-    self.EggIsOpening = false
-    self.CanOpen = true
-end
+-- Disable UI/Anims
+EggAnim.Hatch = function() end 
+EggController.opening = function(self) self.EggIsOpening = false self.CanOpen = true end
 
--- [[ 3. AUTO-HATCH LOOP ]]
 Tab:CreateToggle({
-   Name = "Start Hyper Hatch (Auto-Detects Pass)",
+   Name = "Start Hyper Hatch (Zone 23)",
    CurrentValue = false,
    Callback = function(Value)
-       _G.HyperHatchUniversal = Value
+       _G.ZorpEnabled = Value
+       if selectedInternal == "Unknown" then
+           warn("❌ [ERROR] No Egg Selected!") return
+       end
        
        task.spawn(function()
-           while _G.HyperHatchUniversal do
-               if selectedEggID ~= "Unknown" then
-                   -- DETECTION: Reads your account attributes for gamepasses
-                   local hasTriple = Player:GetAttribute("TripleEggs") or false
-                   local hasOcto = Player:GetAttribute("OctoEggs") or false
-                   local specialHatches = Player:GetAttribute("HatchesPurchased") or 0
-                   local useSpecial = specialHatches > 0
-
-                   -- Force Controller State
-                   EggController.CurrentEgg = selectedEggID
-                   EggController.CanOpen = true
-                   EggController.EggIsOpening = false
-                   
-                   -- Fire Native Code (The 'true' ignores the 1s cooldown)
-                   pcall(function()
-                       EggController:openEgg(hasTriple, selectedEggID, hasOcto, true, useSpecial)
-                   end)
-               end
-               task.wait() -- Maximum processing speed
+           while _G.ZorpEnabled do
+               local triple = Player:GetAttribute("TripleEggs") or false
+               local octo = Player:GetAttribute("OctoEggs") or false
+               local special = (Player:GetAttribute("HatchesPurchased") or 0) > 0
+               
+               EggController.CanOpen = true
+               EggController.EggIsOpening = false
+               
+               pcall(function()
+                   -- Passing 'true' for Arg 4 bypasses the 1s delay
+                   EggController:openEgg(triple, selectedInternal, octo, true, special)
+               end)
+               task.wait() 
            end
        end)
    end,
+})
+
+Tab:CreateButton({
+    Name = "🎯 Force Link Alien Egg (Zone 23)",
+    Callback = ForceAlienEgg
 })
