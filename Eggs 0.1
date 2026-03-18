@@ -63,7 +63,10 @@ HatchTab:CreateInput({
 
 HatchTab:CreateSection("📊 Live Session Stats")
 local sessionHatches = 0
+local totalSeconds = 0
+
 local trackerLabel = HatchTab:CreateLabel("Total Eggs Hatched: 0")
+local timerLabel = HatchTab:CreateLabel("Time Elapsed: 00:00:00")
 
 HatchTab:CreateSection("🏆 Jackpot Tracker")
 local gigaCount = 0
@@ -84,6 +87,21 @@ HatchTab:CreateToggle({
             local target = (customEggOverride ~= "") and customEggOverride or selectedEgg
             if OpenerUI then OpenerUI.Enabled = false end
             
+            -- Thread 1: The Independent Time Tracker
+            task.spawn(function()
+                while _G.SmartHatch do
+                    task.wait(1)
+                    totalSeconds = totalSeconds + 1
+                    
+                    local hours = math.floor(totalSeconds / 3600)
+                    local minutes = math.floor((totalSeconds % 3600) / 60)
+                    local seconds = totalSeconds % 60
+                    
+                    timerLabel:Set(string.format("Time Elapsed: %02d:%02d:%02d", hours, minutes, seconds))
+                end
+            end)
+
+            -- Thread 2: The Synchronous Egg Hatcher
             task.spawn(function()
                 while _G.SmartHatch do
                     local hasTriple = Player:GetAttribute("TripleEggs") or false
@@ -91,7 +109,6 @@ HatchTab:CreateToggle({
                     local extraHatches = Player:GetAttribute("HatchesPurchased") or 0
                     local useExtraHatches = (extraHatches > 0)
                     
-                    -- The script pauses right here until the server successfully saves the egg
                     local success, pets = pcall(function()
                         return EggRF.purchaseEgg:InvokeServer(target, nil, hasTriple, false, hasOcto, useExtraHatches, nil)
                     end)
@@ -118,7 +135,6 @@ HatchTab:CreateToggle({
                         trackerLabel:Set("Total Eggs Hatched: " .. tostring(sessionHatches))
                     end
                     
-                    -- Firing the next request the exact frame the server unlocks
                     task.wait()
                 end
             end)
