@@ -27,7 +27,7 @@ local RequestStartFight = ArmWrestleService:WaitForChild("RF"):WaitForChild("Req
 local RequestClick = ArmWrestleService:WaitForChild("RF"):WaitForChild("RequestClick")
 
 local PlayerGui = Player:WaitForChild("PlayerGui")
-local OpenerUI = PlayerGui:WaitForChild("OpenerUI") 
+local OpenerUI = PlayerGui:WaitForChild("OpenerUI", 5) -- Added a slight timeout just in case it takes a second to load
 
 --- 🛡️ UNDETECTABLE ANTI-AFK ---
 Player.Idled:Connect(function()
@@ -40,7 +40,7 @@ end)
 ---------------------------------------------------------
 local HatchTab = Window:CreateTab("🥚 Auto-Hatch", 4483362458)
 
-local allEggs = {"Intermission"}
+local allEggs = {"Intermission", "Speaker Egg"} -- Added Speaker Egg to default list
 local selectedEgg = "Intermission" 
 local customEggOverride = ""
 
@@ -55,7 +55,7 @@ HatchTab:CreateDropdown({
 
 HatchTab:CreateInput({
     Name = "Custom Internal Name (Override)",
-    PlaceholderText = "e.g. Intermission",
+    PlaceholderText = "e.g. Speaker Egg",
     RemoveTextAfterFocusLost = false,
     Flag = "CustomEggInputConfig", 
     Callback = function(Text) customEggOverride = Text end,
@@ -73,9 +73,9 @@ local gigaCount = 0
 local megaCount = 0
 local olympicCount = 0
 
-local gigaLabel = HatchTab:CreateLabel("🐾 GigaSteampunkLizard: 0")
-local megaLabel = HatchTab:CreateLabel("🐉 MegaClockDragon: 0")
-local olympicLabel = HatchTab:CreateLabel("⏱️ OlympicClock: 0")
+local gigaLabel = HatchTab:CreateLabel("🎸 GigaGuitaristMonkey: 0")
+local megaLabel = HatchTab:CreateLabel("🔊 MegaSpeakerDragon: 0")
+local olympicLabel = HatchTab:CreateLabel("💿 OlympicDiscLizard: 0")
 
 HatchTab:CreateToggle({
     Name = "Start Zero-Drop Synchronous Hatch",
@@ -119,15 +119,15 @@ HatchTab:CreateToggle({
                             hatchCount = hatchCount + 1
                             local name = type(petData) == "table" and (petData.Name or petData.Key) or tostring(petData)
                             
-                            if name == "GigaSteampunkLizard" then
+                            if name == "GigaGuitaristMonkey" then
                                 gigaCount = gigaCount + 1
-                                gigaLabel:Set("🐾 GigaSteampunkLizard: " .. tostring(gigaCount))
-                            elseif name == "MegaClockDragon" then
+                                gigaLabel:Set("🎸 GigaGuitaristMonkey: " .. tostring(gigaCount))
+                            elseif name == "MegaSpeakerDragon" then
                                 megaCount = megaCount + 1
-                                megaLabel:Set("🐉 MegaClockDragon: " .. tostring(megaCount))
-                            elseif name == "OlympicClock" then
+                                megaLabel:Set("🔊 MegaSpeakerDragon: " .. tostring(megaCount))
+                            elseif name == "OlympicDiscLizard" then
                                 olympicCount = olympicCount + 1
-                                olympicLabel:Set("⏱️ OlympicClock: " .. tostring(olympicCount))
+                                olympicLabel:Set("💿 OlympicDiscLizard: " .. tostring(olympicCount))
                             end
                         end
                         
